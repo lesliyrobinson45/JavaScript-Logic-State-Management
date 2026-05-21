@@ -1,0 +1,29 @@
+{
+  "name": "javascript-logic-state-management",
+  "version": "1.0.0",
+  "description": "A fully functional, modern task management application built with pure HTML5, CSS3, and Vanilla JavaScript. Features a beautiful UI, dark mode, local storage persistence, and comprehensive task management capabilities.",
+  "main": "script.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lesliyrobinson45/JavaScript-Logic-State-Management.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lesliyrobinson45/JavaScript-Logic-State-Management/issues"
+  },
+  "homepage": "https://github.com/lesliyrobinson45/JavaScript-Logic-State-Management#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.6.2"
+  }
+}

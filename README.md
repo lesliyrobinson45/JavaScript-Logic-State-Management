@@ -1,6 +1,6 @@
 # TaskFlow - Modern To-Do List Application
 
-A fully functional, modern task management application built with pure HTML5, CSS3, and Vanilla JavaScript. Features a beautiful UI, dark mode, local storage persistence, and comprehensive task management capabilities.
+A fully functional, modern task management application with MongoDB backend, Express.js API, and a beautiful frontend built with HTML5, CSS3, and Vanilla JavaScript. Features cloud database persistence, dark mode, and comprehensive task management capabilities.
 
 ![TaskFlow Banner](https://via.placeholder.com/900x300/6366f1/ffffff?text=TaskFlow+-+Modern+Task+Management)
 
@@ -8,11 +8,12 @@ A fully functional, modern task management application built with pure HTML5, CS
 
 ### Core Functionality
 - ✅ **Full CRUD Operations** - Create, Read, Update, and Delete tasks
-- 💾 **Local Storage Persistence** - All tasks automatically saved to browser storage
+- 💾 **MongoDB Persistence** - Cloud database storage with MongoDB Atlas
 - 🔍 **Live Search** - Real-time task filtering as you type
 - 🎯 **Smart Filtering** - Filter by All, Active, or Completed tasks
 - ✏️ **Inline Editing** - Edit tasks directly with keyboard shortcuts
 - 🗑️ **Bulk Actions** - Clear all completed tasks at once
+- 🌐 **RESTful API** - Complete backend API with Express.js
 
 ### Task Management
 - 📊 **Priority Levels** - High, Medium, and Low priority tags
@@ -30,18 +31,30 @@ A fully functional, modern task management application built with pure HTML5, CS
 - 🎭 **Empty State** - Friendly message when no tasks exist
 
 ### Technical Features
-- 🚫 **No Backend Required** - Runs entirely in the browser
+- 🚀 **Node.js Backend** - Express.js server with RESTful API
+- 🗄️ **MongoDB Database** - Cloud or local database storage
 - 🔒 **XSS Protection** - HTML escaping for user input
 - ⚡ **Performance Optimized** - Event delegation and efficient DOM updates
 - 🎯 **Clean Code** - Well-commented, modular JavaScript
 - 🔄 **State Management** - Centralized application state
+- 📡 **Async Operations** - Modern fetch API with async/await
 
 ## 🛠️ Technologies Used
 
+### Frontend
 - **HTML5** - Semantic markup and modern web standards
 - **CSS3** - Custom properties (variables), Grid, Flexbox, animations
-- **Vanilla JavaScript** - ES6+ features, no frameworks or libraries
-- **localStorage API** - Client-side data persistence
+- **Vanilla JavaScript** - ES6+ features, async/await, fetch API
+
+### Backend
+- **Node.js** - JavaScript runtime
+- **Express.js** - Web application framework
+- **MongoDB** - NoSQL database (cloud or local)
+- **Mongoose** - MongoDB object modeling
+
+### Additional
+- **CORS** - Cross-origin resource sharing
+- **dotenv** - Environment variable management
 
 ## 📁 Project Structure
 
@@ -50,17 +63,44 @@ project-folder/
 │
 ├── index.html          # Main HTML structure
 ├── style.css           # Complete styling with dark mode
-├── script.js           # Application logic and state management
-└── README.md           # Project documentation
+├── script.js           # Frontend with MongoDB API integration
+├── script-local.js     # Original localStorage version (backup)
+├── server.js           # Express.js backend server
+├── package.json        # Node.js dependencies and scripts
+├── .env               # Environment variables (MongoDB connection)
+├── .gitignore         # Git ignore patterns
+├── README.md          # Project documentation
+└── SETUP.md           # Detailed setup instructions
 ```
 
 ## 🚀 How to Run
 
-1. **Clone or Download** the project files
-2. **Open** `index.html` in any modern web browser
-3. **Start managing** your tasks immediately!
+### Prerequisites
+- Node.js installed (v14 or higher)
+- MongoDB Atlas account (free) OR local MongoDB installation
 
-No installation, no build process, no dependencies required.
+### Quick Start
+
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Configure MongoDB**
+   - See [SETUP.md](SETUP.md) for detailed MongoDB setup
+   - Update `.env` file with your MongoDB connection string
+
+3. **Start the Server**
+   ```bash
+   npm start
+   ```
+
+4. **Open the Application**
+   - Go to: http://localhost:3000
+   - Start managing your tasks!
+
+### Detailed Setup Instructions
+See [SETUP.md](SETUP.md) for complete MongoDB Atlas setup guide and troubleshooting.
 
 ### Browser Compatibility
 - ✅ Chrome/Edge (latest)
@@ -123,10 +163,16 @@ Three priority levels with color coding:
 
 ### State Management
 Centralized `AppState` object manages:
-- Tasks array
+- Tasks array (synced with MongoDB)
 - Current filter selection
 - Search query
 - Editing state
+
+### API Integration
+- RESTful API calls using fetch API
+- Async/await for clean asynchronous code
+- Error handling with user-friendly messages
+- Automatic UI updates after API operations
 
 ### DOM Caching
 All DOM elements cached on initialization for optimal performance.
@@ -134,16 +180,16 @@ All DOM elements cached on initialization for optimal performance.
 ### Event Delegation
 Efficient event handling using delegation pattern for dynamic task elements.
 
-### Local Storage Schema
-Tasks stored as JSON array with structure:
+### Database Schema
+Tasks stored in MongoDB with Mongoose schema:
 ```javascript
 {
-  id: "unique-id",
-  text: "Task description",
-  completed: false,
-  priority: "medium",
-  dueDate: "2026-05-25",
-  createdAt: "2026-05-21T10:30:00.000Z"
+  text: String (required, trimmed),
+  completed: Boolean (default: false),
+  priority: String (enum: low/medium/high),
+  dueDate: Date (optional),
+  createdAt: Date (auto-generated),
+  updatedAt: Date (auto-generated)
 }
 ```
 
@@ -163,6 +209,74 @@ Tasks stored as JSON array with structure:
 - **XSS Prevention** - All user input is escaped before rendering
 - **Input Validation** - Empty tasks and invalid dates are rejected
 - **Safe HTML** - No `innerHTML` with unescaped user content
+- **Environment Variables** - Sensitive data stored in .env file
+- **CORS Enabled** - Controlled cross-origin access
+
+## 🌐 API Documentation
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Endpoints
+
+#### Get All Tasks
+```http
+GET /api/tasks
+```
+Returns array of all tasks.
+
+#### Create Task
+```http
+POST /api/tasks
+Content-Type: application/json
+
+{
+  "text": "Task description",
+  "priority": "medium",
+  "dueDate": "2026-05-25"
+}
+```
+
+#### Update Task
+```http
+PUT /api/tasks/:id
+Content-Type: application/json
+
+{
+  "text": "Updated text",
+  "completed": true
+}
+```
+
+#### Delete Task
+```http
+DELETE /api/tasks/:id
+```
+
+#### Delete All Completed Tasks
+```http
+DELETE /api/tasks/completed/all
+```
+
+#### Health Check
+```http
+GET /api/health
+```
+
+### Task Schema
+```javascript
+{
+  _id: "MongoDB ObjectId",
+  text: "Task description",
+  completed: false,
+  priority: "low" | "medium" | "high",
+  dueDate: "2026-05-25" | null,
+  createdAt: "2026-05-21T10:30:00.000Z",
+  updatedAt: "2026-05-21T10:30:00.000Z"
+}
+```
 
 ## ⚡ Performance Optimizations
 
@@ -175,15 +289,19 @@ Tasks stored as JSON array with structure:
 ## 🎓 Learning Highlights
 
 This project demonstrates:
-- Modern JavaScript ES6+ features
-- DOM manipulation best practices
-- Event handling patterns
-- State management without frameworks
-- localStorage API usage
-- Responsive CSS design
-- CSS custom properties (variables)
-- Accessibility considerations
-- Clean code principles
+- **Backend Development**: Node.js, Express.js, RESTful API design
+- **Database Integration**: MongoDB, Mongoose ODM
+- **Frontend-Backend Communication**: Fetch API, async/await
+- **Modern JavaScript**: ES6+ features, promises, error handling
+- **DOM Manipulation**: Best practices and patterns
+- **Event Handling**: Delegation and efficient listeners
+- **State Management**: Without frameworks
+- **API Design**: RESTful principles
+- **Environment Configuration**: dotenv usage
+- **Responsive CSS Design**: Mobile-first approach
+- **CSS Custom Properties**: Theme management
+- **Accessibility**: ARIA labels and semantic HTML
+- **Clean Code Principles**: Modular, commented, maintainable
 
 ## 🤝 Contributing
 

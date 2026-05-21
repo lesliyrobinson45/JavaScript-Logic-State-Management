@@ -1,10 +1,6 @@
 // ============================================
 // TaskFlow - Modern To-Do List Application
-// With MongoDB Backend Integration
 // ============================================
-
-// API Configuration
-const API_URL = 'http://localhost:3000/api/tasks';
 
 // Application State
 const AppState = {
@@ -38,11 +34,11 @@ const DOM = {
 /**
  * Initialize the application
  */
-async function init() {
+function init() {
     cacheDOMElements();
+    loadTasksFromStorage();
     loadThemeFromStorage();
     attachEventListeners();
-    await loadTasksFromAPI();
     renderTasks();
     updateStatistics();
     setMinDate();
@@ -109,7 +105,7 @@ function attachEventListeners() {
 /**
  * Handle task form submission
  */
-async function handleTaskSubmit(e) {
+function handleTaskSubmit(e) {
     e.preventDefault();
     
     const taskText = DOM.taskInput.value.trim();
@@ -121,41 +117,25 @@ async function handleTaskSubmit(e) {
     
     // Create new task object
     const newTask = {
+        id: generateId(),
         text: taskText,
+        completed: false,
         priority: DOM.prioritySelect.value,
-        dueDate: DOM.dueDateInput.value || null
+        dueDate: DOM.dueDateInput.value || null,
+        createdAt: new Date().toISOString()
     };
     
-    // Send to API
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(newTask)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to create task');
-        }
-        
-        const savedTask = await response.json();
-        
-        // Add to state
-        AppState.tasks.unshift(savedTask);
-        
-        // Render and update
-        renderTasks();
-        updateStatistics();
-        
-        // Reset form
-        DOM.taskForm.reset();
-        DOM.taskInput.focus();
-    } catch (error) {
-        console.error('Error creating task:', error);
-        alert('Failed to create task. Please try again.');
-    }
+    // Add task to state
+    AppState.tasks.unshift(newTask);
+    
+    // Save and render
+    saveTasksToStorage();
+    renderTasks();
+    updateStatistics();
+    
+    // Reset form
+    DOM.taskForm.reset();
+    DOM.taskInput.focus();
 }
 
 /**
@@ -188,7 +168,7 @@ function handleFilterChange(e) {
 /**
  * Handle clear completed button
  */
-async function handleClearCompleted() {
+function handleClearCompleted() {
     const completedCount = AppState.tasks.filter(task => task.completed).length;
     
     if (completedCount === 0) {
@@ -196,24 +176,10 @@ async function handleClearCompleted() {
     }
     
     if (confirm(`Delete ${completedCount} completed task(s)?`)) {
-        try {
-            const response = await fetch(`${API_URL}/completed/all`, {
-                method: 'DELETE'
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to delete completed tasks');
-            }
-            
-            // Remove from state
-            AppState.tasks = AppState.tasks.filter(task => !task.completed);
-            
-            renderTasks();
-            updateStatistics();
-        } catch (error) {
-            console.error('Error deleting completed tasks:', error);
-            alert('Failed to delete completed tasks. Please try again.');
-        }
+        AppState.tasks = AppState.tasks.filter(task => !task.completed);
+        saveTasksToStorage();
+        renderTasks();
+        updateStatistics();
     }
 }
 
@@ -283,61 +249,26 @@ function handleTaskEditKeydown(e) {
 /**
  * Toggle task completion status
  */
-async function toggleTaskComplete(taskId) {
-    const task = AppState.tasks.find(t => t._id === taskId);
+function toggleTaskComplete(taskId) {
+    const task = AppState.tasks.find(t => t.id === taskId);
     
     if (task) {
-        try {
-            const response = await fetch(`${API_URL}/${taskId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ completed: !task.completed })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to update task');
-            }
-            
-            const updatedTask = await response.json();
-            
-            // Update state
-            const index = AppState.tasks.findIndex(t => t._id === taskId);
-            AppState.tasks[index] = updatedTask;
-            
-            renderTasks();
-            updateStatistics();
-        } catch (error) {
-            console.error('Error updating task:', error);
-            alert('Failed to update task. Please try again.');
-        }
+        task.completed = !task.completed;
+        saveTasksToStorage();
+        renderTasks();
+        updateStatistics();
     }
 }
 
 /**
  * Delete a task
  */
-async function deleteTask(taskId) {
+function deleteTask(taskId) {
     if (confirm('Delete this task?')) {
-        try {
-            const response = await fetch(`${API_URL}/${taskId}`, {
-                method: 'DELETE'
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to delete task');
-            }
-            
-            // Remove from state
-            AppState.tasks = AppState.tasks.filter(t => t._id !== taskId);
-            
-            renderTasks();
-            updateStatistics();
-        } catch (error) {
-            console.error('Error deleting task:', error);
-            alert('Failed to delete task. Please try again.');
-        }
+        AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+        saveTasksToStorage();
+        renderTasks();
+        updateStatistics();
     }
 }
 
@@ -355,7 +286,7 @@ function startEditTask(taskId, taskCard) {
     
     AppState.editingTaskId = taskId;
     
-    const task = AppState.tasks.find(t => t._id === taskId);
+    const task = AppState.tasks.find(t => t.id === taskId);
     const taskTextEl = taskCard.querySelector('.task-text');
     const editBtn = taskCard.querySelector('.edit-btn');
     
@@ -379,7 +310,7 @@ function startEditTask(taskId, taskCard) {
 /**
  * Save edited task
  */
-async function saveEditTask(taskId, taskCard) {
+function saveEditTask(taskId, taskCard) {
     const input = taskCard.querySelector('.task-text-input');
     const newText = input.value.trim();
     
@@ -389,30 +320,13 @@ async function saveEditTask(taskId, taskCard) {
         return;
     }
     
-    try {
-        const response = await fetch(`${API_URL}/${taskId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ text: newText })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update task');
-        }
-        
-        const updatedTask = await response.json();
-        
-        // Update state
-        const index = AppState.tasks.findIndex(t => t._id === taskId);
-        AppState.tasks[index] = updatedTask;
-        
+    const task = AppState.tasks.find(t => t.id === taskId);
+    
+    if (task) {
+        task.text = newText;
+        saveTasksToStorage();
         AppState.editingTaskId = null;
         renderTasks();
-    } catch (error) {
-        console.error('Error updating task:', error);
-        alert('Failed to update task. Please try again.');
     }
 }
 
@@ -474,7 +388,7 @@ function getFilteredTasks() {
  * Create HTML for a single task
  */
 function createTaskHTML(task) {
-    const isEditing = AppState.editingTaskId === task._id;
+    const isEditing = AppState.editingTaskId === task.id;
     const completedClass = task.completed ? 'completed' : '';
     const priorityClass = `priority-${task.priority}`;
     
@@ -484,7 +398,7 @@ function createTaskHTML(task) {
     const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate) < new Date();
     
     return `
-        <div class="task-card ${completedClass}" data-task-id="${task._id}">
+        <div class="task-card ${completedClass}" data-task-id="${task.id}">
             <div class="task-header">
                 <input 
                     type="checkbox" 
@@ -546,31 +460,34 @@ function updateStatistics() {
 }
 
 // ============================================
-// API Integration
+// Local Storage
 // ============================================
 
 /**
- * Load tasks from API
+ * Save tasks to localStorage
  */
-async function loadTasksFromAPI() {
+function saveTasksToStorage() {
     try {
-        const response = await fetch(API_URL);
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch tasks');
-        }
-        
-        AppState.tasks = await response.json();
+        localStorage.setItem('taskflow_tasks', JSON.stringify(AppState.tasks));
     } catch (error) {
-        console.error('Error loading tasks:', error);
-        alert('Failed to load tasks from server. Please check if the server is running.');
-        AppState.tasks = [];
+        console.error('Error saving tasks to localStorage:', error);
     }
 }
 
-// ============================================
-// Local Storage (Theme Only)
-// ============================================
+/**
+ * Load tasks from localStorage
+ */
+function loadTasksFromStorage() {
+    try {
+        const stored = localStorage.getItem('taskflow_tasks');
+        if (stored) {
+            AppState.tasks = JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('Error loading tasks from localStorage:', error);
+        AppState.tasks = [];
+    }
+}
 
 /**
  * Save theme preference to localStorage
@@ -623,6 +540,13 @@ function updateThemeIcon(theme) {
 // ============================================
 // Utility Functions
 // ============================================
+
+/**
+ * Generate unique ID for tasks
+ */
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 /**
  * Format date to readable string
