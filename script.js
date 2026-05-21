@@ -116,6 +116,7 @@ async function handleTaskSubmit(e) {
     
     // Validation
     if (!taskText) {
+        alert('Please enter a task description');
         return;
     }
     
@@ -131,13 +132,15 @@ async function handleTaskSubmit(e) {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(newTask)
         });
         
         if (!response.ok) {
-            throw new Error('Failed to create task');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to create task');
         }
         
         const savedTask = await response.json();
@@ -154,7 +157,7 @@ async function handleTaskSubmit(e) {
         DOM.taskInput.focus();
     } catch (error) {
         console.error('Error creating task:', error);
-        alert('Failed to create task. Please try again.');
+        alert('Failed to create task. Please check if the server is running and try again.\n\nError: ' + error.message);
     }
 }
 
